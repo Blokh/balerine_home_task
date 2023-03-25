@@ -1,6 +1,5 @@
 <h3> to run the project - need to run </h3>
-yarn install
-yarn start
+yarn install && yarn start
 
 <h3> whai would do different if I had more knowledge/time: </h3>
 
