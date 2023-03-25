@@ -146,8 +146,16 @@ export const transactionMachine = createMachine({
             },
         }, reEnqueueTransaction: {
             after: { 3000: { target: 'pendingTransaction', actions: send({ type: 'TRANSACTION_REQUESTED', log: 'Resednging Transction' }) } }
-        }, validateTransaction: {
-            always: { actions: 'persistSumOfRanksToSendingWallet', cond: 'isTransactionToExternal' },
+        },
+            // TODO: Refactor the validateTransaction to look somewhat like the code below
+            // always: { actions: 'persistSumOfRanksToSendingWallet', cond: 'isTransactionToExternal' },
+            // on: [
+            //     { target: 'enqueueTransaction', conditions: ['isTransactionToExternal', 'isExternalTransactionValid']},
+            //     { target: 'enqueueTransaction', conditions: ['isTransactionToInternal', 'isInternalTransactionValid']},
+            //     { target: 'blockTransaction', action: 'persistBlockTransactionNewRankToWallet' },
+            // ],
+        validateTransaction: {
+            // always: { actions: 'persistSumOfRanksToSendingWallet', cond: 'isTransactionToExternal' },
             on: [
                 { target: 'enqueueTransaction', cond: (context, event) => {!isInternalTransaction(context.transactionRequest) && isExternalTransactionFitsLimits(context.transactionRequest)} },
                 { target: 'enqueueTransaction', cond: (context, event) => { isInternalTransaction(context.transactionRequest) && isInternalTransactionFitsLimits(context.transactionRequest)} },
@@ -203,13 +211,14 @@ export const transactionMachine = createMachine({
         }, isTransactionFromWalletAlreadyEnqueued: (context, event) => {
             return isTransactionFromWalletAlreadyEnqueued(context.transactionRequest)
         }, isTransactionToExternal: (context, event) => {
+            debugger
             return !isInternalTransaction(context.transactionRequest)
-        // },isExternalTransactionValid: (context, event) => {
-        //     return isExternalTransactionFitsLimits(context.transactionRequest)
-        // },isTransactionToInternal: (context, event) => {
-        //     return isInternalTransaction(context.transactionRequest)
-        // },isInternalTransactionValid: (context, event) => {
-        //     return isInternalTransactionFitsLimits(context.transactionRequest)
+        },isExternalTransactionValid: (context, event) => {
+            return isExternalTransactionFitsLimits(context.transactionRequest)
+        },isTransactionToInternal: (context, event) => {
+            return isInternalTransaction(context.transactionRequest)
+        },isInternalTransactionValid: (context, event) => {
+            return isInternalTransactionFitsLimits(context.transactionRequest)
         }
     }
 });
