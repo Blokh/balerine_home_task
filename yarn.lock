@@ -9268,7 +9268,7 @@ xmlchars@^2.2.0:
 
 xstate@^4.37.1:
   version "4.37.1"
-  resolved "https://registry.npmjs.org/xstate/-/xstate-4.37.1.tgz"
+  resolved "https://registry.yarnpkg.com/xstate/-/xstate-4.37.1.tgz#1dd5a8bda179ef6cbb42e0e5fe06c99048a1ce3c"
   integrity sha512-MuB7s01nV5vG2CzaBg2msXLGz7JuS+x/NBkQuZAwgEYCnWA8iQMiRz2VGxD3pcFjZAOih3fOgDD3kDaFInEx+g==
 
 xtend@^4.0.2:

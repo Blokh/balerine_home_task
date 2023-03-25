@@ -23,7 +23,7 @@ export const WalletList: React.FC<WalletListProps> = (wallets) => {
                 </thead>
                 <tbody>
                 {wallets.wallets.map(wallet => (
-                    <Wallet wallet={wallet}/>
+                    <Wallet wallet={wallet} key={wallet.id}/>
                 ))}
                 </tbody>
             </table>

@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import {TWalletId} from "../../wallet/types";
 import { ITransactionRequest} from "../types";
 
-
 interface TransactionFormProps {
     wallets: {
         id: TWalletId,
@@ -13,7 +12,7 @@ interface TransactionFormProps {
 const TransactionForm: React.FC<TransactionFormProps> = ({ wallets, onTransactionSubmit }) => {
     const [fromWalletId, setFromWalletId] = useState('');
     const [toWalletId, setToWalletId] = useState('');
-    const [amount, setAmount] = useState(0);
+    const [amount, setAmount] = useState(1);
 
     const handleFormSubmit = (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
@@ -32,7 +31,7 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ wallets, onTransactio
 
         setFromWalletId('');
         setToWalletId('');
-        setAmount(0);
+        setAmount(1);
     };
 
     return (

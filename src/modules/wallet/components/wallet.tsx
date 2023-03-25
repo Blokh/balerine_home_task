@@ -7,7 +7,7 @@ interface WalletProps {
 
 const Wallet: React.FC<WalletProps> = ({ wallet }) => {
     return (
-        <tr key={wallet.id}>
+        <tr>
             <td><b>Wallet ID: {wallet.id}</b></td>
             <td>Status: {wallet.status}</td>
             <td>Risk Rank: {wallet.riskRank}</td>
