@@ -11,3 +11,8 @@ yarn install && yarn start
   * wallet persistence.
 4. generate a dynamic config, also the transactions are very much different so maybe generating 2 different actos for each would be perferable.
 5. add tests to the machine, view, models using jest
+
+
+PS disclaimer:
+ChatGPT helped with:
+generator, componentes ( view )
