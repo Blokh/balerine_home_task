@@ -30,7 +30,7 @@ const sendTransactionRequest = (transactionService: any, transactionRequest: ITr
 function handleRefreshState(state, forceUpdate) {
     let stateName = state.value;
     console.log(stateName)
-    if (stateName == 'final') {
+    if (stateName == 'transactionFinished') {
         forceUpdate()
     }
 }

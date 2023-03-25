@@ -147,14 +147,14 @@ export const transactionMachine = createMachine({
         }, reEnqueueTransaction: {
             after: { 3000: { target: 'pendingTransaction', actions: send({ type: 'TRANSACTION_REQUESTED', log: 'Resednging Transction' }) } }
         }, validateTransaction: {
-            always: { cond: 'isTransactionToExternal', action: 'persistSumOfRanksToSendingWallet'},
+            always: { actions: 'persistSumOfRanksToSendingWallet', cond: 'isTransactionToExternal' },
             on: [
-                { target: 'enqueueTransaction', cond: ['isTransactionToExternal','isExternalTransactionValid'] }, // could not find the reason why it does not allow double condintions to be executed
-                { target: 'enqueueTransaction', cond: ['isTransactionToInternal', 'isInternalTransactionValid'] },
+                { target: 'enqueueTransaction', cond: (context, event) => {!isInternalTransaction(context.transactionRequest) && isExternalTransactionFitsLimits(context.transactionRequest)} },
+                { target: 'enqueueTransaction', cond: (context, event) => { isInternalTransaction(context.transactionRequest) && isInternalTransactionFitsLimits(context.transactionRequest)} },
                 { target: 'blockTransaction', action: 'persistBlockTransactionNewRankToWallet' },
-            ]
+            ],
         }, enqueueTransaction: {
-            after: { 5500: {on: {target: 'transactionFinished', actions: ['persistTransactionsToWallets', 'unlockSenderInTransaction']}} } // added after in order to simluate transaction that takes time
+            after: { 5500: { target: 'transactionFinished', actions: ['persistTransactionsToWallets', 'unlockSenderInTransaction']} } // added after in order to simluate transaction that takes time
          },
         blockTransaction: {
             target: 'transactionFinished', actions: 'unlockSenderInTransaction'
@@ -203,14 +203,13 @@ export const transactionMachine = createMachine({
         }, isTransactionFromWalletAlreadyEnqueued: (context, event) => {
             return isTransactionFromWalletAlreadyEnqueued(context.transactionRequest)
         }, isTransactionToExternal: (context, event) => {
-            debugger;
             return !isInternalTransaction(context.transactionRequest)
-        },isExternalTransactionValid: (context, event) => {
-            return isExternalTransactionFitsLimits(context.transactionRequest)
-        },isTransactionToInternal: (context, event) => {
-            return isInternalTransaction(context.transactionRequest)
-        },isInternalTransactionValid: (context, event) => {
-            return isInternalTransactionFitsLimits(context.transactionRequest)
+        // },isExternalTransactionValid: (context, event) => {
+        //     return isExternalTransactionFitsLimits(context.transactionRequest)
+        // },isTransactionToInternal: (context, event) => {
+        //     return isInternalTransaction(context.transactionRequest)
+        // },isInternalTransactionValid: (context, event) => {
+        //     return isInternalTransactionFitsLimits(context.transactionRequest)
         }
     }
 });
