@@ -170,9 +170,9 @@ export const transactionMachine = createMachine({
             let transactionRequest = context.transactionRequest;
 
             if (transactionRequest.toWallet.status == WALLET_STATE.BLOCKED) {
-                assign({walletBlockReason: BLOCKAGE_REASONS.SENT_TO_BLOCKED_WALLET})
+                context.walletBlockReason = BLOCKAGE_REASONS.SENT_TO_BLOCKED_WALLET
             } else if (transactionRequest.fromWallet.riskRank >= MAX_RISK_RANK) {
-                assign({walletBlockReason: BLOCKAGE_REASONS.EXCEEDED_RISK_RANK_LIMIT})
+                context.walletBlockReason = BLOCKAGE_REASONS.EXCEEDED_RISK_RANK_LIMIT
             }
         }, blockSendingWallet: (context, event) => {
             blockWallet(context.transactionRequest.fromWallet, context.walletBlockReason, context.db)
@@ -181,8 +181,6 @@ export const transactionMachine = createMachine({
         }, persistTransactionsToWallets: (context, event) => {
             persistTransactionToDb(context.transactionRequest, context.db);
         }, unlockSenderInTransaction: (context, event) => {
-            unlockSenderTransaction(context.transactionRequest);
-        }, someOtherName: (context, event) => {
             unlockSenderTransaction(context.transactionRequest);
         }
     },
