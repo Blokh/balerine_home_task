@@ -1,8 +1,9 @@
-to run the project - need to run 
+<h3> to run the project - need to run </h3>
 yarn install
 yarn start
 
-what i would do different if I had more knowledge/time:
+<h3> whai would do different if I had more knowledge/time: </h3>
+
 1. instead of using the hack of forceUpdate(). use the useMachine hook in order to update the state.
 2. set context properly instead of passing it from the event, use assign instead of passing it.
 3. update the the machine to 3 different machines with the domains of:
