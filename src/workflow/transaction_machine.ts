@@ -11,12 +11,12 @@ import {INewTransaction, ITransaction, ITransactionRequest} from "../modules/tra
 import {updateWallet} from "../dal/wallet";
 import {insertTransaction} from "../dal/transaction";
 
-let runningWalletTransaction = {}
 const MAX_RISK_RANK = 600;
 const EXTERNAL_LIMIT_THRESHOLD = 100;
 const INTERNAL_LIMIT_THRESHOLD = 300;
 const INTERNAL_PERCENTAGE_ADDITIONAL_RISK_ON_BLOCK = 15;
 const EXTERNAL_PERCENTAGE_ADDITIONAL_RISK_ON_BLOCK = 10;
+const IN_PROCESS_PREFIX = 'in_process_wallet';
 
 const isReceivingWalletBlocked = (request: ITransactionRequest) => {
     return request.toWallet.status == WALLET_STATE.BLOCKED
@@ -32,20 +32,21 @@ const persistSumOfRanksToSendingWallet = (transactionRequest: ITransactionReques
     return fromWallet
 }
 
-const lockSenderInTransaction = (transactionRequest: ITransactionRequest) : void => {
-    let walletId = fetchSendingWalletId(transactionRequest);
-
-    runningWalletTransaction[walletId] = true
+function generate_process_key(transactionRequest: ITransactionRequest) {
+    return IN_PROCESS_PREFIX + fetchSendingWalletId(transactionRequest);
 }
 
-const isTransactionFromWalletAlreadyEnqueued = (transactionRequest: ITransactionRequest) : boolean => {
-    let isSellerAlreadySending = runningWalletTransaction[fetchSendingWalletId(transactionRequest)];
-
-    return isSellerAlreadySending
+const lockSenderInTransaction = (db: any, transactionRequest: ITransactionRequest) : void => {
+    db.setItem(generate_process_key(transactionRequest), 'true');
 }
 
-const unlockSenderTransaction = (transactionRequest: ITransactionRequest) : void => {
-    delete runningWalletTransaction[fetchSendingWalletId(transactionRequest)]
+const isTransactionFromWalletAlreadyEnqueued = (db: any, transactionRequest: ITransactionRequest) : boolean => {
+    let isSellerAlreadySending = db.getItem(generate_process_key(transactionRequest), 'false');
+    return isSellerAlreadySending == 'true'
+}
+
+const unlockSenderTransaction = (db: any, transactionRequest: ITransactionRequest) : void => {
+    db.removeItem(generate_process_key(transactionRequest))
 }
 
 const fetchSendingWalletId = (transactionRequest: ITransactionRequest) : TWalletId =>{
@@ -155,15 +156,16 @@ export const transactionMachine = createMachine({
                 ]
             }
         }, enqueueTransaction: {
-            after: { 5500: { target: 'transactionFinished', actions: ['persistTransactionsToWallets', 'unlockSenderInTransaction']} } // added after in order to simluate transaction that takes time
+            after: { 5500: { target: 'transactionFinished', actions: ['persistTransactionsToWallets', 'unlockSenderInTransaction'] } } // added after in order to simluate transaction that takes time
          }, blockTransaction: {
-            target: 'transactionFinished', actions: 'unlockSenderInTransaction'
-        }, transactionFinished: { type: 'final', action: 'nullifyContext' }
+            target: 'transactionFinished', action: 'unlockSenderInTransaction'
+        }, transactionFinished:
+            { type: 'final' }
     }
 }, {
     actions: {
         lockSenderInTransaction: (context, event) => {
-            assign({transaction: lockSenderInTransaction(context.transactionRequest)})
+            assign({transaction: lockSenderInTransaction(context.db, context.transactionRequest)})
         }, persistSumOfRanksToSendingWallet: (context, event) => {
             context.transactionRequest.fromWallet = persistSumOfRanksToSendingWallet(context.transactionRequest)
         }, generateWalletBlockReason: (context, event) => {
@@ -181,14 +183,12 @@ export const transactionMachine = createMachine({
         }, persistTransactionsToWallets: (context, event) => {
             persistTransactionToDb(context.transactionRequest, context.db);
         }, unlockSenderInTransaction: (context, event) => {
-            unlockSenderTransaction(context.transactionRequest);
-        }, nullifyContext: (context, event) => {
-            context.transactionRequest = undefined;
+            unlockSenderTransaction(context.db, context.transactionRequest);
         }
     },
     guards: {
         assignInitialContext: (context, event) => {
-            if (context.transactionRequest == undefined){
+            if (event.transactionRequest){
                 context.transactionRequest = event.transactionRequest;
                 context.db = event.db;
             }
@@ -198,7 +198,7 @@ export const transactionMachine = createMachine({
             let transactionRequest = context.transactionRequest;
             return isReceivingWalletBlocked(transactionRequest) || transactionRequest.fromWallet.riskRank > MAX_RISK_RANK;
         }, isTransactionFromWalletAlreadyEnqueued: (context, event) => {
-            return isTransactionFromWalletAlreadyEnqueued(context.transactionRequest)
+            return isTransactionFromWalletAlreadyEnqueued(context.db, context.transactionRequest)
         }, isTransactionToExternal: (context, event) => {
             return !isInternalTransaction(context.transactionRequest)
         },isExternalTransactionValid: (context, event) => {

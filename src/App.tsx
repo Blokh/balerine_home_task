@@ -19,17 +19,23 @@ const initiateWallets = (db: any) => {
     return wallets;
 }
 
-const sendTransactionRequest = (transactionService: any, transactionRequest: ITransactionRequest, db: any) => {
+const sendTransactionRequest = (transactionRequest: ITransactionRequest, db: any, forceUpdate: any) => {
     if (transactionRequest.fromWallet.status === WALLET_STATE.BLOCKED) {
         return alert ('Picked wallet is blocked because: ' +  transactionRequest.fromWallet.blockageReason)
     }
+
+    const transactionService = interpret(transactionMachine)
+        .onTransition((state) => {
+            handleRefreshState(state, forceUpdate)
+        }).start();
+
 
     transactionService.send({type: 'TRANSACTION_REQUESTED', transactionRequest, db})
 }
 
 function handleRefreshState(state, forceUpdate) {
     let stateName = state.value;
-    ;
+
     console.log(stateName + ' - event - ' + state._event)
     if (stateName == 'transactionFinished') {
         forceUpdate()
@@ -44,23 +50,15 @@ function resetWallets(db, forceUpdate) {
 
 function App() {
     const wallets = initiateWallets(window.localStorage);
-    const db = window.localStorage;
+    const db = window.localStorage; // database interface / redis /
     const forceUpdate = useForceUpdate();
-
-    // @ts-ignore
-    const transactionService = interpret(transactionMachine)
-        .onTransition((state) => {
-            handleRefreshState(state, forceUpdate)
-
-        })
-        .start();
 
     return (
     <div className="App">
       <header className="App-header">
           <WalletList wallets={wallets} />
       </header>
-          <TransactionForm wallets={wallets} onTransactionSubmit={(transaction => sendTransactionRequest(transactionService, transaction, db))}/>
+          <TransactionForm wallets={wallets} onTransactionSubmit={(transaction => sendTransactionRequest(transaction, db, forceUpdate))}/>
           <button onClick={event => {resetWallets(window.localStorage, forceUpdate)}}> resetWallet</button>
     </div>
   );
