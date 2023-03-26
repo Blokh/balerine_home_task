@@ -30,11 +30,11 @@ export const addTransaction = (wallet: IWallet, transaction: ITransaction, db: a
 export const getAllWallets = (db: any) : IWallet[] => {
     return Object.keys(db)
         .filter(key => key.substring(0, 6) == "wallet")
-        .map(key => JSON.parse(localStorage.getItem(key)) as IWallet)
+        .map(key => JSON.parse(db.getItem(key)) as IWallet)
 }
 
 export const deleteAllWallets = (db: any) : void => {
     Object.keys(db)
         .filter(key => key.substring(0, 6) == "wallet")
-        .map(key => localStorage.removeItem(key))
+        .map(key => db.removeItem(key))
 }
