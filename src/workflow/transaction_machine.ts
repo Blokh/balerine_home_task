@@ -23,7 +23,6 @@ const isReceivingWalletBlocked = (request: ITransactionRequest) => {
 }
 
 const persistSumOfRanksToSendingWallet = (transactionRequest: ITransactionRequest) : IWallet => {
-    debugger;
     let fromWallet = transactionRequest.fromWallet;
     let summedRank = fromWallet.riskRank + transactionRequest.toWallet.riskRank
     fromWallet.riskRank = summedRank
@@ -141,24 +140,25 @@ export const transactionMachine = createMachine({
                     { cond: 'assignInitialContext' }, // this is a hack since I could not pass the event information to context
                     { target: 'transactionFinished', cond: 'shouldBlockWallet', actions: ['generateWalletBlockReason', 'blockSendingWallet'] },
                     { target: 'reEnqueueTransaction', cond: 'isTransactionFromWalletAlreadyEnqueued' },
-                    { target: 'validateTransaction', action: 'lockSenderInTransaction' },
+                    { target: 'validateTransaction', actions: ['lockSenderInTransaction', 'persistSumOfRanksToSendingWallet', send({ type: 'VALIDATE_REQUEST' })], cond: 'isTransactionToExternal'},
+                    { target: 'validateTransaction', action: ['lockSenderInTransaction', send({ type: 'VALIDATE_REQUEST' })] },
                 ]
             },
         }, reEnqueueTransaction: {
             after: { 3000: { target: 'pendingTransaction', actions: send({ type: 'TRANSACTION_REQUESTED', log: 'Resednging Transction' }) } }
         }, validateTransaction: {
-            always: { cond: 'isTransactionToExternal', action: 'persistSumOfRanksToSendingWallet'},
-            on: [
-                { target: 'enqueueTransaction', cond: ['isTransactionToExternal','isExternalTransactionValid'] }, // could not find the reason why it does not allow double condintions to be executed
-                { target: 'enqueueTransaction', cond: ['isTransactionToInternal', 'isInternalTransactionValid'] },
-                { target: 'blockTransaction', action: 'persistBlockTransactionNewRankToWallet' },
-            ]
+            on: {
+                'VALIDATE_REQUEST': [
+                    {target: 'enqueueTransaction', conditions: ['isTransactionToExternal', 'isExternalTransactionValid']},
+                    {target: 'enqueueTransaction', conditions: ['isTransactionToInternal', 'isInternalTransactionValid']},
+                    {target: 'blockTransaction', action: 'persistBlockTransactionNewRankToWallet'},
+                ]
+            }
         }, enqueueTransaction: {
-            after: { 5500: {on: {target: 'transactionFinished', actions: ['persistTransactionsToWallets', 'unlockSenderInTransaction']}} } // added after in order to simluate transaction that takes time
-         },
-        blockTransaction: {
+            after: { 5500: { target: 'transactionFinished', actions: ['persistTransactionsToWallets', 'unlockSenderInTransaction']} } // added after in order to simluate transaction that takes time
+         }, blockTransaction: {
             target: 'transactionFinished', actions: 'unlockSenderInTransaction'
-        }, transactionFinished: { type: 'final' }
+        }, transactionFinished: { type: 'final', action: 'nullifyContext' }
     }
 }, {
     actions: {
@@ -182,6 +182,8 @@ export const transactionMachine = createMachine({
             persistTransactionToDb(context.transactionRequest, context.db);
         }, unlockSenderInTransaction: (context, event) => {
             unlockSenderTransaction(context.transactionRequest);
+        }, nullifyContext: (context, event) => {
+            context.transactionRequest = undefined;
         }
     },
     guards: {
@@ -192,18 +194,12 @@ export const transactionMachine = createMachine({
             }
 
             return false;
-        }, assignContextFromEvent: (context, event) => {
-            assign({
-                transactionRequest: event.transactionRequest,
-                db: event.db
-            })
         }, shouldBlockWallet: (context, event) => {
             let transactionRequest = context.transactionRequest;
             return isReceivingWalletBlocked(transactionRequest) || transactionRequest.fromWallet.riskRank > MAX_RISK_RANK;
         }, isTransactionFromWalletAlreadyEnqueued: (context, event) => {
             return isTransactionFromWalletAlreadyEnqueued(context.transactionRequest)
         }, isTransactionToExternal: (context, event) => {
-            debugger;
             return !isInternalTransaction(context.transactionRequest)
         },isExternalTransactionValid: (context, event) => {
             return isExternalTransactionFitsLimits(context.transactionRequest)

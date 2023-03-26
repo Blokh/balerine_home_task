@@ -29,8 +29,9 @@ const sendTransactionRequest = (transactionService: any, transactionRequest: ITr
 
 function handleRefreshState(state, forceUpdate) {
     let stateName = state.value;
-    console.log(stateName)
-    if (stateName == 'final') {
+    ;
+    console.log(stateName + ' - event - ' + state._event)
+    if (stateName == 'transactionFinished') {
         forceUpdate()
     }
 }
@@ -48,7 +49,10 @@ function App() {
 
     // @ts-ignore
     const transactionService = interpret(transactionMachine)
-        .onTransition((state) => handleRefreshState(state, forceUpdate))
+        .onTransition((state) => {
+            handleRefreshState(state, forceUpdate)
+
+        })
         .start();
 
     return (
